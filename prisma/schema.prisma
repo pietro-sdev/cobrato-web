@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  super_admin
+  admin
+  employee
+}
+
+enum BoletoStatus {
+  pendente
+  pago
+  vencido
+  cancelado
+  em_andamento
+}
+
+enum BancoIntegrado {
+  inter
+  sicoob
+  asaas
+}
+
+model Usuario {
+  id           String    @id @default(uuid())
+  nome         String
+  email        String    @unique
+  telefone     String
+  senha        String
+  role         Role
+  foto         String?
+  empresaId    String?
+  empresa      Empresa?         @relation(fields: [empresaId], references: [id])
+  permissoes   PermissaoFuncionario[]
+  createdAt    DateTime  @default(now())
+}
+
+model Empresa {
+  id           String    @id @default(uuid())
+  nome         String
+  cnpj         String    @unique
+  email        String
+  telefone     String
+  responsavel  String
+  segmento     String
+  status       Boolean   @default(true)
+  endereco     Endereco?
+  usuarios     Usuario[]
+  cobrancas    Cobranca[]
+  bancos       IntegracaoBancaria[]
+  createdAt    DateTime  @default(now())
+}
+
+model Endereco {
+  id         String   @id @default(uuid())
+  empresaId  String   @unique
+  empresa    Empresa  @relation(fields: [empresaId], references: [id])
+  cep        String
+  rua        String
+  numero     String
+  complemento String?
+  bairro     String
+  cidade     String
+  estado     String
+}
+
+model Cobranca {
+  id           String         @id @default(uuid())
+  empresaId    String
+  empresa      Empresa        @relation(fields: [empresaId], references: [id])
+  cliente      String
+  valor        Decimal
+  descricao    String?
+  vencimento   DateTime
+  status       BoletoStatus
+  tipo         String
+  recorrenteId String?
+  createdAt    DateTime       @default(now())
+}
+
+model PermissaoFuncionario {
+  id          String   @id @default(uuid())
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  visualizarCobrancas  Boolean @default(false)
+  emitirBoletos        Boolean @default(false)
+  cancelarCobranca     Boolean @default(false)
+  recorrencia          Boolean @default(false)
+  configurarBoletos    Boolean @default(false)
+  acessoRelatorios     Boolean @default(false)
+  baixaManual          Boolean @default(false)
+}
+
+model IntegracaoBancaria {
+  id            String         @id @default(uuid())
+  empresaId     String
+  empresa       Empresa        @relation(fields: [empresaId], references: [id])
+  banco         BancoIntegrado
+  configuracoes Json
+  ativa         Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+
+  @@unique([empresaId, banco])
+}
+
