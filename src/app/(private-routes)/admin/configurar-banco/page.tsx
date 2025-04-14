@@ -32,10 +32,13 @@ export default function ConfigurarBancosPage() {
     webhookUrl: "",
   });
 
+  // Adicionamos walletId para Asaas
   const [asaas, setAsaas] = useState({
     accessToken: "",
     pixKey: "",
     webhookUrl: "",
+    walletId: "", // Novo campo para Wallet ID
+    ambiente: "sandbox",
   });
 
   useEffect(() => {
@@ -148,6 +151,7 @@ export default function ConfigurarBancosPage() {
           <TabsTrigger value="asaas">Asaas</TabsTrigger>
         </TabsList>
 
+        {/* Configuração do Banco Inter */}
         <TabsContent value="inter" className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -209,10 +213,12 @@ export default function ConfigurarBancosPage() {
               />
             </div>
           </div>
-
-          <Button onClick={() => handleSave("inter")}>Salvar Configurações</Button>
+          <Button onClick={() => handleSave("inter")}>
+            Salvar Configurações
+          </Button>
         </TabsContent>
 
+        {/* Configuração do Sicoob */}
         <TabsContent value="sicoob" className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -243,6 +249,19 @@ export default function ConfigurarBancosPage() {
                 }
               />
             </div>
+            <div className="space-y-1">
+              <Label>Ambiente</Label>
+              <select
+                className="w-full border border-input bg-background px-3 py-2 rounded-md text-sm"
+                value={sicoob.ambiente}
+                onChange={(e) =>
+                  setSicoob({ ...sicoob, ambiente: e.target.value })
+                }
+              >
+                <option value="sandbox">Sandbox</option>
+                <option value="production">Produção</option>
+              </select>
+            </div>
             <div className="space-y-1 md:col-span-2">
               <Label>Webhook URL</Label>
               <Input
@@ -263,10 +282,12 @@ export default function ConfigurarBancosPage() {
               />
             </div>
           </div>
-
-          <Button onClick={() => handleSave("sicoob")}>Salvar Configurações</Button>
+          <Button onClick={() => handleSave("sicoob")}>
+            Salvar Configurações
+          </Button>
         </TabsContent>
 
+        {/* Configuração do Asaas */}
         <TabsContent value="asaas" className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -285,16 +306,40 @@ export default function ConfigurarBancosPage() {
                 onChange={(e) => setAsaas({ ...asaas, pixKey: e.target.value })}
               />
             </div>
+            <div className="space-y-1">
+              <Label>Wallet ID</Label>
+              <Input
+                placeholder="Insira o Wallet ID"
+                value={asaas.walletId}
+                onChange={(e) => setAsaas({ ...asaas, walletId: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Ambiente</Label>
+              <select
+                className="w-full border border-input bg-background px-3 py-2 rounded-md text-sm"
+                value={asaas.ambiente}
+                onChange={(e) =>
+                  setAsaas({ ...asaas, ambiente: e.target.value })
+                }
+              >
+                <option value="sandbox">Sandbox</option>
+                <option value="production">Produção</option>
+              </select>
+            </div>
             <div className="space-y-1 md:col-span-2">
               <Label>Webhook URL</Label>
               <Input
                 value={asaas.webhookUrl}
-                onChange={(e) => setAsaas({ ...asaas, webhookUrl: e.target.value })}
+                onChange={(e) =>
+                  setAsaas({ ...asaas, webhookUrl: e.target.value })
+                }
               />
             </div>
           </div>
-
-          <Button onClick={() => handleSave("asaas")}>Salvar Configurações</Button>
+          <Button onClick={() => handleSave("asaas")}>
+            Salvar Configurações
+          </Button>
         </TabsContent>
       </Tabs>
     </div>

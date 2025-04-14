@@ -1,46 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { GenericTable } from "@/components/layout/TableGeneric";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-
-const charges = [
-  {
-    id: "3e75b604-41cb-4643",
-    company: "Block Code",
-    amount: "R$ 360,00",
-    status: "Pago",
-    dueDate: "25/02/2025",
-  },
-  {
-    id: "3e75b604-41cb-4643",
-    company: "Block Code",
-    amount: "R$ 360,00",
-    status: "Em andamento",
-    dueDate: "25/02/2025",
-  },
-  {
-    id: "3e75b604-41cb-4643",
-    company: "Block Code",
-    amount: "R$ 360,00",
-    status: "Em andamento",
-    dueDate: "25/02/2025",
-  },
-  {
-    id: "3e75b604-41cb-4643",
-    company: "Block Code",
-    amount: "R$ 360,00",
-    status: "Pendente",
-    dueDate: "25/02/2025",
-  },
-  {
-    id: "3e75b604-41cb-4643",
-    company: "Block Code",
-    amount: "R$ 360,00",
-    status: "Pendente",
-    dueDate: "25/02/2025",
-  },
-];
+import { listarCobrancasPorEmpresa } from "@/actions/cobranca/listarCobrancasPorEmpresa";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const chargeColumns = [
   { key: "id", label: "ID do Boleto" },
@@ -69,6 +34,23 @@ const chargeColumns = [
 ];
 
 export default function Page() {
+  const { cnpj } = useAuthStore();
+  const [charges, setCharges] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!cnpj) return;
+    const fetchCharges = async () => {
+      const result = await listarCobrancasPorEmpresa(cnpj);
+      if (result.success) {
+        setCharges(result.data ?? []);
+      } else {
+        console.error(result.error);
+      }
+    };
+
+    fetchCharges();
+  }, [cnpj]);
+
   return (
     <div>
       <h1 className="text-4xl font-bold leading-none">Cobranças Emitidas</h1>

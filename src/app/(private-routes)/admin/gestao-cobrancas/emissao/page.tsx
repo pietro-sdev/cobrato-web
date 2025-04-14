@@ -24,85 +24,83 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 
-// Server action para emitir boleto Inter (onde você faz a chamada real)
-import { emitirCobrancaInter } from "@/actions/cobranca/emitirCobrancaInter";
-
-/**
- * Exemplo de formulário com TODOS os campos básicos
- * exigidos para emissão de cobrança assíncrona no Banco Inter:
- * - seuNumero
- * - valorNominal (Valor)
- * - dataVencimento
- * - numDiasAgenda
- * - pagador (nome, cpfCnpj, tipoPessoa, endereco, bairro, cidade, uf, cep, numero, etc.)
- */
 export default function EmissaoCobrancaPage() {
   const [date, setDate] = useState<Date | undefined>();
-  const [banco, setBanco] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
-  // Campos adicionais do doc
-  const [seuNumero, setSeuNumero] = useState("");
-  const [numDiasAgenda, setNumDiasAgenda] = useState("0");
-
-  // Campos de pagador
-  const [tipoPessoa, setTipoPessoa] = useState<"FISICA" | "JURIDICA">("FISICA");
+  // Campos essenciais
   const [cpfCnpj, setCpfCnpj] = useState("");
-  const [cliente, setCliente] = useState(""); // doc chama de "nome"
-  const [endereco, setEndereco] = useState("");
-  const [numeroEndereco, setNumeroEndereco] = useState("");
-  const [bairro, setBairro] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [uf, setUf] = useState("");
-  const [cep, setCep] = useState("");
-
-  // Já existia
+  const [cliente, setCliente] = useState("");
+  const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [valor, setValor] = useState(""); // MaskedInput -> R$ 99999,99
+  const [seuNumero, setSeuNumero] = useState("");
+
+  // Campos de opções adicionais
+  const [daysAfterDueDate, setDaysAfterDueDate] = useState("1");
+  const [discountValue, setDiscountValue] = useState("10");
+  const [discountDueDateLimitDays, setDiscountDueDateLimitDays] = useState("0");
+
+  // Novo campo: Tipo de desconto com select. O valor selecionado será enviado como "PERCENTAGE" ou "FIXED".
+  const [discountType, setDiscountType] = useState("PERCENTAGE"); 
+
+  const [interestValue, setInterestValue] = useState("0");
+  const [fineValue, setFineValue] = useState("2");
+  const [postalService, setPostalService] = useState(false);
+  // Removidos os callbacks conforme solicitado
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-
-    if (banco !== "inter") {
-      alert(`Banco "${banco}" ainda não implementado.`);
-      return;
-    }
 
     const vencimento = date
       ? format(date, "dd/MM/yyyy", { locale: ptBR })
       : "";
 
-    // Exemplo fixo (ou buscar do AuthStore):
+    // Empresa fixa – ajuste conforme o contexto (ex: AuthStore)
     const empresaCnpj = "79379491000183";
 
+    const payload = {
+      empresaCnpj,
+      cliente,
+      cpfCnpj,
+      valor,      // Valor em formato "R$ 129,90" – backend fará a conversão
+      vencimento, // Data "dd/MM/yyyy" – será convertida para ISO no backend
+      descricao,
+      seuNumero,
+      billingType: "BOLETO",
+      daysAfterDueDateToRegistrationCancellation: Number(daysAfterDueDate),
+      installmentCount: null,
+      totalValue: null,
+      installmentValue: null,
+      discount: {
+        value: Number(discountValue),
+        dueDateLimitDays: Number(discountDueDateLimitDays),
+        type: discountType,
+      },
+      interest: { value: Number(interestValue) },
+      fine: { value: Number(fineValue), type: "FIXED" },
+      // Os campos postalService e callbacks foram removidos conforme solicitado
+    };
+
     startTransition(async () => {
-      // Monta objeto esperado pela server action
-      const payload = {
-        empresaCnpj,
-        cliente,       // "nome" do pagador
-        descricao,     // campo adicional livre
-        valor,         // ex: "R$ 100,00"
-        vencimento,    // ex: "dd/MM/yyyy"
-
-        // Campos da doc:
-        seuNumero,
-        numDiasAgenda,
-        cpfCnpj,
-        tipoPessoa,
-        endereco,
-        numero: numeroEndereco,
-        bairro,
-        cidade,
-        uf,
-        cep,
-      };
-
-      const response = await emitirCobrancaInter(payload);
-      if (!response.success) {
-        alert("Erro ao emitir boleto: " + (response.error || "Desconhecido"));
-      } else {
-        alert("Boleto emitido com sucesso!");
-        console.log("Dados do boleto:", response);
+      try {
+        const res = await fetch("/api/emitir/emitir-asaas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert("Erro ao emitir boleto: " + (data.error || "Desconhecido"));
+        } else {
+          alert("Boleto emitido com sucesso!");
+          console.log("Dados do boleto:", data);
+          if (data.urlBoleto) {
+            window.open(data.urlBoleto, "_blank");
+          }
+        }
+      } catch (error) {
+        console.error("Erro na requisição:", error);
+        alert("Erro ao conectar com a API.");
       }
     });
   };
@@ -112,48 +110,36 @@ export default function EmissaoCobrancaPage() {
       <div className="space-y-1">
         <h1 className="text-4xl font-bold">Emitir Nova Cobrança</h1>
         <p className="text-gray-500">
-          Preencha os dados abaixo para gerar um novo boleto.
+          Preencha os campos essenciais e as opções adicionais abaixo para gerar um novo boleto.
         </p>
       </div>
 
       <Separator />
 
       <form onSubmit={handleSubmit} className="space-y-4 w-full">
-        {/* Banco */}
+        {/* Campos Essenciais */}
         <div>
-          <RequiredLabel htmlFor="banco">Banco Emissor</RequiredLabel>
-          <Select value={banco} onValueChange={setBanco} required>
-            <SelectTrigger id="banco" className="w-full">
-              <SelectValue placeholder="Selecione o banco emissor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem className="cursor-pointer" value="asaas">
-                Asaas (API)
-              </SelectItem>
-              <SelectItem className="cursor-pointer" value="sicoob">
-                Sicoob (756)
-              </SelectItem>
-              <SelectItem className="cursor-pointer" value="inter">
-                Inter (077)
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Seu Número */}
-        <div>
-          <RequiredLabel htmlFor="seuNumero">Seu Número</RequiredLabel>
+          <RequiredLabel htmlFor="cpfCnpj">CPF/CNPJ</RequiredLabel>
           <Input
-            id="seuNumero"
-            placeholder="Ex: ABC123 (máx 15 caracteres)"
-            maxLength={15}
-            value={seuNumero}
-            onChange={(e) => setSeuNumero(e.target.value)}
+            id="cpfCnpj"
+            placeholder="Somente dígitos"
+            value={cpfCnpj}
+            onChange={(e) => setCpfCnpj(e.target.value)}
             required
           />
         </div>
 
-        {/* Valor */}
+        <div>
+          <RequiredLabel htmlFor="cliente">Nome do Pagador</RequiredLabel>
+          <Input
+            id="cliente"
+            placeholder="Ex: João da Silva"
+            value={cliente}
+            onChange={(e) => setCliente(e.target.value)}
+            required
+          />
+        </div>
+
         <div>
           <RequiredLabel htmlFor="valor">Valor</RequiredLabel>
           <MaskedInput
@@ -166,7 +152,6 @@ export default function EmissaoCobrancaPage() {
           />
         </div>
 
-        {/* Data Vencimento */}
         <div className="grid gap-1">
           <RequiredLabel htmlFor="vencimento">Data de Vencimento</RequiredLabel>
           <Popover>
@@ -176,9 +161,7 @@ export default function EmissaoCobrancaPage() {
                 className="w-full justify-start text-left font-normal"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {date
-                  ? format(date, "dd/MM/yyyy", { locale: ptBR })
-                  : "Selecionar data"}
+                {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -193,145 +176,110 @@ export default function EmissaoCobrancaPage() {
           </Popover>
         </div>
 
-        {/* Dias de Agenda */}
-        <div>
-          <RequiredLabel htmlFor="numDiasAgenda">Dias de Agenda (0 a 60)</RequiredLabel>
-          <Input
-            id="numDiasAgenda"
-            type="number"
-            min={0}
-            max={60}
-            value={numDiasAgenda}
-            onChange={(e) => setNumDiasAgenda(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Tipo Pessoa */}
-        <div>
-          <RequiredLabel htmlFor="tipoPessoa">Tipo de Pessoa</RequiredLabel>
-          <Select
-            value={tipoPessoa}
-            onValueChange={(val) =>
-              setTipoPessoa(val as "FISICA" | "JURIDICA")
-            }
-            required
-          >
-            <SelectTrigger id="tipoPessoa" className="w-full">
-              <SelectValue placeholder="Selecione o tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="FISICA">Física</SelectItem>
-              <SelectItem value="JURIDICA">Jurídica</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* CPF/CNPJ */}
-        <div>
-          <RequiredLabel htmlFor="cpfCnpj">CPF/CNPJ</RequiredLabel>
-          <Input
-            id="cpfCnpj"
-            placeholder="Somente dígitos"
-            value={cpfCnpj}
-            onChange={(e) => setCpfCnpj(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Nome do Pagador */}
-        <div>
-          <RequiredLabel htmlFor="cliente">Nome do Pagador</RequiredLabel>
-          <Input
-            id="cliente"
-            placeholder="Ex: João da Silva"
-            value={cliente}
-            onChange={(e) => setCliente(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Endereço */}
-        <div>
-          <RequiredLabel htmlFor="endereco">Endereço (Rua/Av.)</RequiredLabel>
-          <Input
-            id="endereco"
-            placeholder="Ex: Avenida Brasil"
-            value={endereco}
-            onChange={(e) => setEndereco(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Número */}
-        <div>
-          <RequiredLabel htmlFor="numeroEndereco">Número</RequiredLabel>
-          <Input
-            id="numeroEndereco"
-            placeholder="Ex: 1200"
-            value={numeroEndereco}
-            onChange={(e) => setNumeroEndereco(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Bairro */}
-        <div>
-          <RequiredLabel htmlFor="bairro">Bairro</RequiredLabel>
-          <Input
-            id="bairro"
-            placeholder="Ex: Centro"
-            value={bairro}
-            onChange={(e) => setBairro(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Cidade */}
-        <div>
-          <RequiredLabel htmlFor="cidade">Cidade</RequiredLabel>
-          <Input
-            id="cidade"
-            placeholder="Ex: Belo Horizonte"
-            value={cidade}
-            onChange={(e) => setCidade(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* UF */}
-        <div>
-          <RequiredLabel htmlFor="uf">UF</RequiredLabel>
-          <Input
-            id="uf"
-            placeholder="Ex: MG"
-            maxLength={2}
-            value={uf}
-            onChange={(e) => setUf(e.target.value.toUpperCase())}
-            required
-          />
-        </div>
-
-        {/* CEP */}
-        <div>
-          <RequiredLabel htmlFor="cep">CEP</RequiredLabel>
-          <Input
-            id="cep"
-            placeholder="Ex: 30110000"
-            value={cep}
-            onChange={(e) => setCep(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Descrição (opcional) */}
         <div>
           <Label htmlFor="descricao">Descrição (opcional)</Label>
           <Input
             id="descricao"
-            placeholder="Ex: Cobrança mensal referente ao plano"
+            placeholder="Ex: Pedido 056984"
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="seuNumero">Seu Número (opcional)</Label>
+          <Input
+            id="seuNumero"
+            placeholder="Ex: 056984"
+            value={seuNumero}
+            onChange={(e) => setSeuNumero(e.target.value)}
+          />
+        </div>
+
+        {/* Campos Adicionais */}
+        <div>
+          <RequiredLabel htmlFor="daysAfterDueDate">
+            Dias Após o Vencimento para Cancelamento
+          </RequiredLabel>
+          <Input
+            id="daysAfterDueDate"
+            type="number"
+            min={0}
+            max={60}
+            value={daysAfterDueDate}
+            onChange={(e) => setDaysAfterDueDate(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <RequiredLabel htmlFor="discountValue">Valor do Desconto</RequiredLabel>
+          <Input
+            id="discountValue"
+            type="number"
+            min={0}
+            value={discountValue}
+            onChange={(e) => setDiscountValue(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <RequiredLabel htmlFor="discountDueDateLimitDays">
+            Dias Limite para Desconto
+          </RequiredLabel>
+          <Input
+            id="discountDueDateLimitDays"
+            type="number"
+            min={0}
+            value={discountDueDateLimitDays}
+            onChange={(e) => setDiscountDueDateLimitDays(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* Select para Tipo de Desconto */}
+        <div>
+          <RequiredLabel htmlFor="discountType">Tipo de Desconto</RequiredLabel>
+          <Select 
+            value={discountType} 
+            onValueChange={(val) => setDiscountType(val)}
+            required
+          >
+            <SelectTrigger id="discountType" className="w-full">
+              <SelectValue placeholder="Selecione o tipo de desconto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PERCENTAGE">Porcentagem</SelectItem>
+              <SelectItem value="FIXED">Fixo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <RequiredLabel htmlFor="interestValue">Valor dos Juros (%)</RequiredLabel>
+          <Input
+            id="interestValue"
+            type="number"
+            min={0}
+            max={10}
+            placeholder="Ex: 0"
+            value={interestValue}
+            onChange={(e) => setInterestValue(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <RequiredLabel htmlFor="fineValue">Valor da Multa (FIXED)</RequiredLabel>
+          <Input
+            id="fineValue"
+            type="number"
+            min={0}
+            placeholder="Ex: 2"
+            value={fineValue}
+            onChange={(e) => setFineValue(e.target.value)}
+            required
           />
         </div>
 

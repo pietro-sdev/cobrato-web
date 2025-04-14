@@ -27,6 +27,14 @@ export function GenericTable({
 }: GenericTableProps) {
   const router = useRouter();
 
+  // Função auxiliar para formatar status
+  const formatStatus = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "pendente") return "Pendente";
+    // Você pode adicionar outras formatações se precisar
+    return status;
+  };
+
   return (
     <div className="w-full space-y-3">
       {/* Cabeçalho - apenas em telas grandes */}
@@ -39,7 +47,7 @@ export function GenericTable({
       {/* Conteúdo - modo responsivo */}
       {data.map((item, idx) => (
         <React.Fragment key={idx}>
-          {/* ✅ Versão para telas grandes */}
+          {/* Versão para telas grandes */}
           <div
             onClick={() => onRowClick?.(item)}
             className="hidden lg:grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] items-center rounded-md border border-[#E4E4E4] bg-white px-4 py-3 text-[15px] cursor-pointer hover:bg-[#F3F3F3] transition-colors"
@@ -49,10 +57,7 @@ export function GenericTable({
 
               if (col.render && enableActions) {
                 return (
-                  <span
-                    key={col.key}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <span key={col.key} onClick={(e) => e.stopPropagation()}>
                     {col.render(item)}
                   </span>
                 );
@@ -61,6 +66,10 @@ export function GenericTable({
               if (col.isStatus) {
                 let colorClasses = "";
                 let dotColor = "";
+                // Utilize o valor formatado
+                const formattedValue = value
+                  ? formatStatus(value)
+                  : value;
 
                 switch (value?.toLowerCase()) {
                   case "ativo":
@@ -89,7 +98,7 @@ export function GenericTable({
                       className={`px-2 py-[2px] text-xs font-medium border-none ${colorClasses}`}
                     >
                       <span className={`h-2 w-2 mr-1 rounded-full ${dotColor}`} />
-                      {value}
+                      {formattedValue}
                     </Badge>
                   </span>
                 );
@@ -106,25 +115,23 @@ export function GenericTable({
             })}
           </div>
 
-          {/* ✅ Versão para telas pequenas (empilhado) */}
+          {/* Versão para telas pequenas (empilhado) */}
           <div
             onClick={() => onRowClick?.(item)}
             className="lg:hidden flex flex-col gap-1 border border-[#E4E4E4] rounded-md px-4 py-3 bg-white text-[15px] hover:bg-[#F3F3F3] transition-colors"
           >
             {columns.map((col) => {
               const value = item[col.key];
+              const formattedValue =
+                value && col.isStatus ? formatStatus(value) : value;
 
               return (
                 <div key={col.key} className="flex justify-between items-center">
                   <span className="text-[13px] font-semibold text-gray-500">
                     {col.label}
                   </span>
-
                   {col.render && enableActions ? (
-                    <span
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-right"
-                    >
+                    <span onClick={(e) => e.stopPropagation()} className="text-right">
                       {col.render(item)}
                     </span>
                   ) : col.isStatus ? (
@@ -147,14 +154,10 @@ export function GenericTable({
                             : "bg-gray-500"
                         }`}
                       />
-                      {value}
+                      {formattedValue}
                     </Badge>
                   ) : (
-                    <span
-                      className={`text-right ${
-                        col.isBold ? "font-semibold" : "text-gray-700"
-                      }`}
-                    >
+                    <span className={`text-right ${col.isBold ? "font-semibold" : "text-gray-700"}`}>
                       {value}
                     </span>
                   )}
