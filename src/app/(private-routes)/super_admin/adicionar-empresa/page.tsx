@@ -74,7 +74,8 @@ export default function AdicionarEmpresa() {
 
     const result = await addEmpresa(cleanedData);
     if (result.status === 200) {
-      router.push("/super_admin/gestao-empresas");
+      const cnpjLimpo = data.cnpj?.replace(/\D/g, "");
+      router.push(`/super_admin/gestao-empresas/gestao-usuarios/${cnpjLimpo}/adicionar`);
     } else {
       console.error("Erro ao cadastrar empresa", result.message);
     }

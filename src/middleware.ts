@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse, type MiddlewareConfig } from "next/server";
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/login", "/esqueci-a-senha"];
 
 type Role = "super_admin" | "admin" | "employee";
 

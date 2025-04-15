@@ -99,4 +99,12 @@ export const primaryMenuPaths: MenuItem[] = [
     roles: ["admin"],
     permissionKey: "configurarBoletos",
   },
+  {
+    name: "Mensagem de Boleto",
+    icon: FileText,
+    href: "/mensagem-boleto",
+    roles: ["admin"],
+    permissionKey: "emitirBoletos",
+  },
+  
 ];

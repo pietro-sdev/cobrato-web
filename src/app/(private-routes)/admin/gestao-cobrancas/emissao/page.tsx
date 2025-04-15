@@ -76,9 +76,6 @@ export default function EmissaoCobrancaPage() {
         dueDateLimitDays: Number(discountDueDateLimitDays),
         type: discountType,
       },
-      interest: { value: Number(interestValue) },
-      fine: { value: Number(fineValue), type: "FIXED" },
-      // Os campos postalService e callbacks foram removidos conforme solicitado
     };
 
     startTransition(async () => {

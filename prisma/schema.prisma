@@ -109,3 +109,8 @@ model IntegracaoBancaria {
   @@unique([empresaId, banco])
 }
 
+model PasswordReset {
+  email      String   @id
+  code       String
+  expiresAt  DateTime
+}

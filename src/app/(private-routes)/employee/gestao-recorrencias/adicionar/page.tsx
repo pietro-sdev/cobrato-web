@@ -21,9 +21,15 @@ import {
 
 export default function ConfigurarRecorrenciaPage() {
   const [startDate, setStartDate] = useState<Date | undefined>();
+  const [banco, setBanco] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const formData = {
+      dataInicio: startDate,
+      banco,
+    };
+    console.log("📦 Recorrência configurada:", formData);
     alert("Cobrança recorrente configurada com sucesso!");
   };
 
@@ -38,7 +44,7 @@ export default function ConfigurarRecorrenciaPage() {
 
       <Separator />
 
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-4 w-full">
         <div>
           <RequiredLabel htmlFor="cliente">Cliente</RequiredLabel>
           <Input id="cliente" placeholder="Nome ou CPF/CNPJ do cliente" required />
@@ -46,7 +52,16 @@ export default function ConfigurarRecorrenciaPage() {
 
         <div>
           <RequiredLabel htmlFor="banco">Banco Emissor</RequiredLabel>
-          <Input id="banco" placeholder="Ex: Sicoob (756)" required />
+          <Select value={banco} onValueChange={setBanco} required>
+            <SelectTrigger id="banco" className="w-full">
+              <SelectValue placeholder="Selecione o banco emissor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem className="cursor-pointer" value="asaas">Asaas (API)</SelectItem>
+              <SelectItem className="cursor-pointer" value="sicoob">Sicoob (756)</SelectItem>
+              <SelectItem className="cursor-pointer" value="inter">Inter (077)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

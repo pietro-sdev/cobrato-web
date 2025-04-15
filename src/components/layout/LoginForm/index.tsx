@@ -81,7 +81,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
             </Button>
           </div>
           <a
-            href="#"
+            href="/esqueci-a-senha"
             className="text-sm sm:pt-4 underline-offset-4 hover:underline text-primary"
           >
             Esqueceu sua senha?
